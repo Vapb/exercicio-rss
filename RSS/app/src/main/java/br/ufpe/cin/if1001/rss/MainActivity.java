@@ -1,21 +1,35 @@
 package br.ufpe.cin.if1001.rss;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.List;
+
 
 public class MainActivity extends Activity {
 
-    //ao fazer envio da resolucao, use este link no seu codigo!
-    private final String RSS_FEED = "http://leopoldomt.com/if1001/g1brasil.xml";
+    private String RSS_FEED;
 
     //OUTROS LINKS PARA TESTAR...
     //http://rss.cnn.com/rss/edition.rss
@@ -24,7 +38,13 @@ public class MainActivity extends Activity {
     //http://pox.globo.com/rss/g1/tecnologia/
 
     //use ListView ao invés de TextView - deixe o atributo com o mesmo nome
-    private TextView conteudoRSS;
+    private ListView conteudoRSS;
+    private ArrayAdapter<ItemRSS> adapterRSS;
+    private MyAdapter beloAdapter;
+    SharedPreferences sharedPreferences;
+    private static String Rss = "rssfeed";
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,12 +52,49 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         //use ListView ao invés de TextView - deixe o ID no layout XML com o mesmo nome conteudoRSS
         //isso vai exigir o processamento do XML baixado da internet usando o ParserRSS
-        conteudoRSS = (TextView) findViewById(R.id.conteudoRSS);
+        conteudoRSS = (ListView) findViewById(R.id.conteudoRSS);
+
+        beloAdapter = new MyAdapter(this);
+
+        // Botar pegar preferencias
+
+        PreferenceManager.setDefaultValues(this, R.xml.preferencias, false);
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+
     }
+
+    // Menu Magic
+    @Override
+    public boolean onCreateOptionsMenu (Menu menu){
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item){
+        switch (item.getItemId()){
+            case R.id.resetar:
+                SharedPreferences.Editor prefsEditor = sharedPreferences.edit();
+                prefsEditor.putString(Rss,getResources().getString(R.string.rss_feed_default));
+                Toast.makeText(this, "Resetei", Toast.LENGTH_SHORT).show();
+                prefsEditor.commit();
+                return true;
+
+            case R.id.muda:
+                startActivity(new Intent(getApplicationContext(), PreferenciasActivity.class));
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+
 
     @Override
     protected void onStart() {
         super.onStart();
+
+        RSS_FEED = sharedPreferences.getString(Rss,"DEFAULT");
         new CarregaRSStask().execute(RSS_FEED);
     }
 
@@ -62,9 +119,41 @@ public class MainActivity extends Activity {
         protected void onPostExecute(String s) {
             Toast.makeText(getApplicationContext(), "terminando...", Toast.LENGTH_SHORT).show();
 
-            //ajuste para usar uma ListView
-            //o layout XML a ser utilizado esta em res/layout/itemlista.xml
-            conteudoRSS.setText(s);
+
+            // Passo 2 3 4 Criei uma listview que utiliza ParserRss
+            List<ItemRSS> parsed;
+            ParserRSS victor = new ParserRSS();
+            try {
+                parsed = victor.parse(s);
+                ///Preencher lista com itens parseados
+                beloAdapter.listaRss.addAll(parsed);
+                conteudoRSS.setAdapter(beloAdapter);
+
+                /// Get link do item clicado
+                conteudoRSS.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+
+                        ListView listView = (ListView) adapterView;
+
+                        MyAdapter arrayAdapter = (MyAdapter) listView.getAdapter();
+
+                        String link = ((ItemRSS) arrayAdapter.getItem(i)).getLink();
+
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setData(Uri.parse(link));
+                        startActivity(intent);
+
+                    }
+                });
+
+
+
+            } catch (XmlPullParserException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 

@@ -15,7 +15,11 @@ public class PreferenciasActivity extends Activity {
     public static class RssPreferenceFragment extends PreferenceFragment {
         @Override
         public void onCreate(Bundle savedInstanceState) {
+
             super.onCreate(savedInstanceState);
+
+            /// Carregar prefs do XML
+            addPreferencesFromResource(R.xml.preferencias);
         }
     }
 }

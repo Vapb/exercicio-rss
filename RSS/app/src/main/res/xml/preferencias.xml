@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <PreferenceCategory android:title="GERAL">
+        <EditTextPreference
+            android:key="rssfeed"
+            android:dialogMessage="Digite o Novo link RSS"
+            android:dialogTitle="Alterar RSS"
+            android:negativeButtonText="Cancelar"
+            android:positiveButtonText="Enviar"
+            android:defaultValue="@string/rss_feed_default"
+            android:title="Novo Rss"></EditTextPreference>
+    </PreferenceCategory>
+
 </PreferenceScreen>
